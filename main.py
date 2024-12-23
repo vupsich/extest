@@ -2,11 +2,15 @@ from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
-# Мини-база данных (список словарей)
+# Мини-база данных (список словарей) с добавлением городов
 excursions_db = [
-    {"id": 1, "name": "Экскурсия по городу", "description": "Прогулка по историческому центру города", "price": 25.0},
-    {"id": 2, "name": "Экскурсия в музей", "description": "Посещение местного музея", "price": 15.5},
-    {"id": 3, "name": "Экскурсия в парк", "description": "Прогулка по национальному парку", "price": 20.0},
+    {"id": 1, "name": "Экскурсия по городу", "description": "Прогулка по историческому центру Иркутска", "price": 25.0, "city": "Иркутск"},
+    {"id": 2, "name": "Экскурсия в музей", "description": "Посещение краеведческого музея в Ангарске", "price": 15.5, "city": "Ангарск"},
+    {"id": 3, "name": "Экскурсия в парк", "description": "Прогулка по природному парку в Братске", "price": 20.0, "city": "Братск"},
+    {"id": 4, "name": "Прогулка на Байкал", "description": "Экскурсия на озеро Байкал с гидом", "price": 50.0, "city": "Листвянка"},
+    {"id": 5, "name": "Экскурсия на плотину", "description": "Посещение Братской ГЭС", "price": 30.0, "city": "Братск"},
+    {"id": 6, "name": "Архитектура Иркутска", "description": "Ознакомление с деревянным зодчеством Иркутска", "price": 40.0, "city": "Иркутск"},
+    {"id": 7, "name": "Тур на Тальцы", "description": "Поездка в архитектурно-этнографический музей", "price": 45.0, "city": "Иркутск"},
 ]
 
 # 1. Эндпоинт для получения всех экскурсий
@@ -17,9 +21,15 @@ def get_excursions():
 # 2. Эндпоинт для получения экскурсии по ID
 @app.get("/excursions/{excursion_id}")
 def get_excursion(excursion_id: int):
-    # Ищем экскурсию по ID в базе данных
     for excursion in excursions_db:
         if excursion["id"] == excursion_id:
             return excursion
-    # Если экскурсия не найдена, выбрасываем ошибку 404
     raise HTTPException(status_code=404, detail="Excursion not found")
+
+# 3. Эндпоинт для поиска экскурсий по городу
+@app.get("/excursions/city/{city_name}")
+def get_excursions_by_city(city_name: str):
+    city_excursions = [excursion for excursion in excursions_db if excursion["city"].lower() == city_name.lower()]
+    if not city_excursions:
+        raise HTTPException(status_code=404, detail="No excursions found in the specified city")
+    return city_excursions
