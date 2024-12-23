@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 app = FastAPI()
 
@@ -13,9 +13,14 @@ excursions_db = [
     {"id": 7, "name": "Тур на Тальцы", "description": "Поездка в архитектурно-этнографический музей", "price": 45.0, "city": "Иркутск"},
 ]
 
-# 1. Эндпоинт для получения всех экскурсий
+# 1. Эндпоинт для получения всех экскурсий с возможностью фильтрации по городу через параметры запроса
 @app.get("/excursions/")
-def get_excursions():
+def get_excursions(city: str = Query(None, description="Название города для фильтрации экскурсий")):
+    if city:
+        city_excursions = [excursion for excursion in excursions_db if excursion["city"].lower() == city.lower()]
+        if not city_excursions:
+            raise HTTPException(status_code=404, detail="No excursions found in the specified city")
+        return city_excursions
     return excursions_db
 
 # 2. Эндпоинт для получения экскурсии по ID
@@ -25,11 +30,3 @@ def get_excursion(excursion_id: int):
         if excursion["id"] == excursion_id:
             return excursion
     raise HTTPException(status_code=404, detail="Excursion not found")
-
-# 3. Эндпоинт для поиска экскурсий по городу
-@app.get("/excursions/city/{city_name}")
-def get_excursions_by_city(city_name: str):
-    city_excursions = [excursion for excursion in excursions_db if excursion["city"].lower() == city_name.lower()]
-    if not city_excursions:
-        raise HTTPException(status_code=404, detail="No excursions found in the specified city")
-    return city_excursions
