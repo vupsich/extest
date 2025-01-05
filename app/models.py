@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, DateTime, DECIMAL
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, DateTime, DECIMAL, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -40,3 +40,26 @@ class Excursion(Base):
     city = relationship("City")
     category = relationship("Category")
     organizer = relationship("Organizer")
+    bookings = relationship("Booking", back_populates="excursion")
+
+
+class Customer(Base):
+    __tablename__ = "customer"
+    customer_id = Column(Integer, primary_key=True, index=True)
+    customer_name = Column(String, nullable=False)
+    customer_phone = Column(String, nullable=False, unique=True)
+
+    # Связь с бронированиями
+    bookings = relationship("Booking", back_populates="customer")
+
+class Booking(Base):
+    __tablename__ = "booking"
+    booking_id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customer.customer_id"), nullable=False)
+    excursion_id = Column(Integer, ForeignKey("excursion.excursion_id"), nullable=False)
+    booking_date = Column(DateTime, server_default=func.now())  # Устанавливаем текущую дату и время
+    booking_status = Column(String, default="pending")
+
+    # Связи
+    customer = relationship("Customer", back_populates="bookings")
+    excursion = relationship("Excursion", back_populates="bookings")

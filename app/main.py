@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app import crud, models, schemas
 from app.database import engine, Base, get_db
@@ -53,3 +54,34 @@ def excursion_detail(excursion_id: int, db: Session = Depends(get_db)):
         "category_name": excursion.category.category_name if excursion.category else None,
         "organizer_name": excursion.organizer.organizer_name if excursion.organizer else None,
     }
+
+
+@app.post("/booking/")
+def create_booking(booking_request: schemas.BookingRequest, db: Session = Depends(get_db)):
+    # проверка, существует ли экскурсия
+    excursion = crud.get_excursion_by_id(db, booking_request.excursion_id)
+    if not excursion:
+        raise HTTPException(status_code=404, detail="Excursion not found")
+    
+    # проверка, существует ли пользователь
+    customer = crud.get_customer_by_phone(db, booking_request.customer_phone)
+    if not customer:
+        # создаем нового пользователя
+        customer = crud.create_customer(
+            db,
+            customer_name=booking_request.customer_name,
+            customer_phone=booking_request.customer_phone,
+        )
+    
+    # проверка, есть ли уже бронирование
+    existing_booking = crud.get_booking(db, customer.customer_id, booking_request.excursion_id)
+    if existing_booking:
+        raise HTTPException(status_code=400, detail="Booking already exists")
+
+    # cоздаем бронирование
+    booking = crud.create_booking(
+        db,
+        customer_id=customer.customer_id,
+        excursion_id=booking_request.excursion_id,
+    )
+    return {"message": "Booking successfully created", "booking_id": booking.booking_id}

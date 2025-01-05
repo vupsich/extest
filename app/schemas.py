@@ -19,3 +19,10 @@ class ExcursionDetail(ExcursionBase):
     city_name: str
     category_name: str
     organizer_name: str
+
+
+# модель запроса на бронирование
+class BookingRequest(BaseModel):
+    customer_name: str
+    customer_phone: str
+    excursion_id: int
