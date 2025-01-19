@@ -47,9 +47,9 @@ class Customer(Base):
     __tablename__ = "customer"
     customer_id = Column(Integer, primary_key=True, index=True)
     customer_name = Column(String, nullable=False)
-    customer_phone = Column(String, nullable=False, unique=True)
+    customer_phone = Column(String, unique=True, nullable=False)
 
-    # Связь с бронированиями
+    # Связи
     bookings = relationship("Booking", back_populates="customer")
 
 class Booking(Base):

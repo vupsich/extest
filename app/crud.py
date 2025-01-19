@@ -92,3 +92,12 @@ def get_all_excursions(db: Session):
         .join(Organizer, Organizer.organizer_id == Excursion.organizer_id)
         .all()
     )
+
+def get_bookings_by_phone(db: Session, customer_phone: str):
+    return (
+        db.query(Booking)
+        .join(Customer, Booking.customer_id == Customer.customer_id)
+        .join(Excursion, Booking.excursion_id == Excursion.excursion_id)
+        .filter(Customer.customer_phone == customer_phone)
+        .all()
+    )

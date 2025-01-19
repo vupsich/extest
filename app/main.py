@@ -97,33 +97,34 @@ def excursion_detail(excursion_id: int, db: Session = Depends(get_db)):
 # Эндпоинт для создания бронирования
 @app.post("/booking/")
 def create_booking(booking_request: schemas.BookingRequest, db: Session = Depends(get_db)):
-    # проверка, существует ли экскурсия
+    # Проверяем, существует ли экскурсия
     excursion = crud.get_excursion_by_id(db, booking_request.excursion_id)
     if not excursion:
         raise HTTPException(status_code=404, detail="Excursion not found")
 
-    # проверка, существует ли пользователь
+    # Проверяем, существует ли пользователь по номеру телефона
     customer = crud.get_customer_by_phone(db, booking_request.customer_phone)
     if not customer:
-        # создаем нового пользователя
+        # Если нет, создаем нового пользователя
         customer = crud.create_customer(
             db,
             customer_name=booking_request.customer_name,
             customer_phone=booking_request.customer_phone,
         )
 
-    # проверка, есть ли уже бронирование
+    # Проверяем, существует ли уже бронирование
     existing_booking = crud.get_booking(db, customer.customer_id, booking_request.excursion_id)
     if existing_booking:
         raise HTTPException(status_code=400, detail="Booking already exists")
 
-    # cоздаем бронирование
+    # Создаем бронирование
     booking = crud.create_booking(
         db,
         customer_id=customer.customer_id,
         excursion_id=booking_request.excursion_id,
     )
     return {"message": "Booking successfully created", "booking_id": booking.booking_id}
+
 
 # Эндпоинт для фильтрации экскурсий с использованием экспертной системы
 @app.post("/filter_excursions/")
@@ -169,3 +170,34 @@ def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
         "category_name": random_excursion.category_name,
         "organizer_name": random_excursion.organizer_name,
     }
+
+@app.get("/bookings/{customer_phone}", response_model=List[schemas.ExcursionDetail])
+def get_customer_bookings(customer_phone: str, db: Session = Depends(get_db)):
+    # Проверяем, существует ли пользователь с таким номером телефона
+    customer = crud.get_customer_by_phone(db, customer_phone)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Получаем список бронирований клиента
+    bookings = crud.get_bookings_by_phone(db, customer_phone)
+    if not bookings:
+        return []  # Возвращаем пустой список, если бронирований нет
+
+    # Преобразуем данные для ответа
+    return [
+        schemas.ExcursionDetail(
+            excursion_id=booking.excursion.excursion_id,
+            excursion_name=booking.excursion.excursion_name,
+            excursion_description=booking.excursion.excursion_description,
+            start_date=booking.excursion.start_date.isoformat(),
+            end_date=booking.excursion.end_date.isoformat(),
+            max_participants=booking.excursion.max_participants,
+            price=float(booking.excursion.price),
+            location=booking.excursion.location,
+            weather_sensitive=booking.excursion.weather_sensitive,
+            city_name=booking.excursion.city.city_name,
+            category_name=booking.excursion.category.category_name,
+            organizer_name=booking.excursion.organizer.organizer_name,
+        )
+        for booking in bookings
+    ]
