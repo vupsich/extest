@@ -17,8 +17,8 @@ class FilterRequest(BaseModel):
     city: str | None = None
     price: float | None = None
     max_participants: int | None = None
+    category: str | None = None  # Новое поле для фильтрации по категории
 
-# Экспертная система
 class ExcursionSelector(KnowledgeEngine):
     def __init__(self, excursions):
         super().__init__()
@@ -39,13 +39,18 @@ class ExcursionSelector(KnowledgeEngine):
     @Rule(Fact(max_participants=MATCH.max_participants))
     def filter_by_max_participants(self, max_participants):
         self.filtered_excursions = [
-            e
-            for e in self.filtered_excursions
-            if e.max_participants <= max_participants
+            e for e in self.filtered_excursions if e.max_participants <= max_participants
+        ]
+
+    @Rule(Fact(category=MATCH.category))
+    def filter_by_category(self, category):
+        self.filtered_excursions = [
+            e for e in self.filtered_excursions if e.category_name.lower() == category.lower()
         ]
 
     def get_results(self):
         return self.filtered_excursions
+
 
 # Эндпоинт для получения случайной экскурсии по городу
 @app.get("/excursions/random/", response_model=List[schemas.ExcursionDetail])
@@ -126,7 +131,6 @@ def create_booking(booking_request: schemas.BookingRequest, db: Session = Depend
     return {"message": "Booking successfully created", "booking_id": booking.booking_id}
 
 
-# Эндпоинт для фильтрации экскурсий с использованием экспертной системы
 @app.post("/filter_excursions/")
 def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
     # Получаем все экскурсии из базы данных
@@ -143,6 +147,8 @@ def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
         engine.declare(Fact(price=filters.price))
     if filters.max_participants:
         engine.declare(Fact(max_participants=filters.max_participants))
+    if filters.category:
+        engine.declare(Fact(category=filters.category))  # Новый факт для категории
 
     # Запускаем систему
     engine.run()
@@ -170,6 +176,7 @@ def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
         "category_name": random_excursion.category_name,
         "organizer_name": random_excursion.organizer_name,
     }
+
 
 @app.get("/bookings/{customer_phone}", response_model=List[schemas.ExcursionDetail])
 def get_customer_bookings(customer_phone: str, db: Session = Depends(get_db)):
