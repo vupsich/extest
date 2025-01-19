@@ -68,3 +68,27 @@ def create_booking(db: Session, customer_id: int, excursion_id: int):
     db.commit()
     db.refresh(new_booking)
     return new_booking
+
+from app.models import Excursion
+
+def get_all_excursions(db: Session):
+    return (
+        db.query(
+            Excursion.excursion_id,
+            Excursion.excursion_name,
+            Excursion.excursion_description,
+            Excursion.start_date,
+            Excursion.end_date,
+            Excursion.max_participants,
+            Excursion.price,
+            Excursion.location,
+            Excursion.weather_sensitive,
+            City.city_name.label("city_name"),
+            Category.category_name.label("category_name"),
+            Organizer.organizer_name.label("organizer_name"),
+        )
+        .join(City, City.city_id == Excursion.city_id)
+        .join(Category, Category.category_id == Excursion.category_id)
+        .join(Organizer, Organizer.organizer_id == Excursion.organizer_id)
+        .all()
+    )
