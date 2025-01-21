@@ -57,7 +57,7 @@ class Booking(Base):
     booking_id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customer.customer_id"), nullable=False)
     excursion_id = Column(Integer, ForeignKey("excursion.excursion_id"), nullable=False)
-    booking_date = Column(DateTime, server_default=func.now())  # Устанавливаем текущую дату и время
+    booking_date = Column(DateTime, server_default=func.now())  
     booking_status = Column(String, default="pending")
 
     # Связи

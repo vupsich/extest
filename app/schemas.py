@@ -15,13 +15,12 @@ class ExcursionBase(BaseModel):
         orm_mode = True
 
 class ExcursionDetail(ExcursionBase):
-    excursion_id: int  # ID экскурсии
+    excursion_id: int  
     city_name: str
     category_name: str
     organizer_name: str
 
 
-# модель запроса на бронирование
 class BookingRequest(BaseModel):
     customer_name: str
     customer_phone: str

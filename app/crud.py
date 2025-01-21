@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 def get_random_excursions_by_city(db: Session, city_name: str, limit: int = 5):
     return (
         db.query(
-            Excursion.excursion_id,  # Добавляем id
+            Excursion.excursion_id,  
             Excursion.excursion_name,
             Excursion.excursion_description,
             Excursion.start_date,

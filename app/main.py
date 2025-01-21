@@ -12,12 +12,11 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Модель фильтрации
 class FilterRequest(BaseModel):
     city: str | None = None
     price: float | None = None
     max_participants: int | None = None
-    category: str | None = None  # Новое поле для фильтрации по категории
+    category: str | None = None  
 
 class ExcursionSelector(KnowledgeEngine):
     def __init__(self, excursions):
@@ -52,7 +51,7 @@ class ExcursionSelector(KnowledgeEngine):
         return self.filtered_excursions
 
 
-# Эндпоинт для получения случайной экскурсии по городу
+
 @app.get("/excursions/random/", response_model=List[schemas.ExcursionDetail])
 def random_excursions(city_name: str, db: Session = Depends(get_db)):
     excursions = crud.get_random_excursions_by_city(db, city_name)
@@ -61,7 +60,7 @@ def random_excursions(city_name: str, db: Session = Depends(get_db)):
 
     response = [
         {
-            "excursion_id": e.excursion_id,  # Добавляем ID
+            "excursion_id": e.excursion_id,  
             "excursion_name": e.excursion_name,
             "excursion_description": e.excursion_description,
             "start_date": e.start_date.isoformat() if e.start_date else None,
@@ -78,7 +77,6 @@ def random_excursions(city_name: str, db: Session = Depends(get_db)):
     ]
     return response
 
-# Эндпоинт для получения детальной информации об экскурсии
 @app.get("/excursion/{excursion_id}", response_model=schemas.ExcursionDetail)
 def excursion_detail(excursion_id: int, db: Session = Depends(get_db)):
     excursion = crud.get_excursion_by_id(db, excursion_id)
@@ -99,30 +97,24 @@ def excursion_detail(excursion_id: int, db: Session = Depends(get_db)):
         "organizer_name": excursion.organizer.organizer_name if excursion.organizer else None,
     }
 
-# Эндпоинт для создания бронирования
 @app.post("/booking/")
 def create_booking(booking_request: schemas.BookingRequest, db: Session = Depends(get_db)):
-    # Проверяем, существует ли экскурсия
     excursion = crud.get_excursion_by_id(db, booking_request.excursion_id)
     if not excursion:
         raise HTTPException(status_code=404, detail="Excursion not found")
 
-    # Проверяем, существует ли пользователь по номеру телефона
     customer = crud.get_customer_by_phone(db, booking_request.customer_phone)
     if not customer:
-        # Если нет, создаем нового пользователя
         customer = crud.create_customer(
             db,
             customer_name=booking_request.customer_name,
             customer_phone=booking_request.customer_phone,
         )
 
-    # Проверяем, существует ли уже бронирование
     existing_booking = crud.get_booking(db, customer.customer_id, booking_request.excursion_id)
     if existing_booking:
         raise HTTPException(status_code=400, detail="Booking already exists")
 
-    # Создаем бронирование
     booking = crud.create_booking(
         db,
         customer_id=customer.customer_id,
@@ -133,14 +125,11 @@ def create_booking(booking_request: schemas.BookingRequest, db: Session = Depend
 
 @app.post("/filter_excursions/")
 def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
-    # Получаем все экскурсии из базы данных
     excursions = crud.get_all_excursions(db)
 
-    # Инициализируем экспертную систему
     engine = ExcursionSelector(excursions)
     engine.reset()
 
-    # Добавляем факты
     if filters.city:
         engine.declare(Fact(city=filters.city))
     if filters.price:
@@ -148,19 +137,15 @@ def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
     if filters.max_participants:
         engine.declare(Fact(max_participants=filters.max_participants))
     if filters.category:
-        engine.declare(Fact(category=filters.category))  # Новый факт для категории
+        engine.declare(Fact(category=filters.category))  
 
-    # Запускаем систему
     engine.run()
 
-    # Получаем отфильтрованные экскурсии
     filtered_excursions = engine.get_results()
 
-    # Если ничего не найдено
     if not filtered_excursions:
         raise HTTPException(status_code=404, detail="No excursions found")
 
-    # Возвращаем случайную экскурсию
     random_excursion = random.choice(filtered_excursions)
     return {
         "excursion_id": random_excursion.excursion_id,
@@ -180,17 +165,14 @@ def filter_excursions(filters: FilterRequest, db: Session = Depends(get_db)):
 
 @app.get("/bookings/{customer_phone}", response_model=List[schemas.ExcursionDetail])
 def get_customer_bookings(customer_phone: str, db: Session = Depends(get_db)):
-    # Проверяем, существует ли пользователь с таким номером телефона
     customer = crud.get_customer_by_phone(db, customer_phone)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Получаем список бронирований клиента
     bookings = crud.get_bookings_by_phone(db, customer_phone)
     if not bookings:
-        return []  # Возвращаем пустой список, если бронирований нет
+        return []  
 
-    # Преобразуем данные для ответа
     return [
         schemas.ExcursionDetail(
             excursion_id=booking.excursion.excursion_id,
